@@ -1,0 +1,35 @@
+
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# PyCharm settings
+.idea/
+
+# Private agent memory
+agent_memory.json
+
+# User-created files
+agent_workspace/
+
+# Downloaded speech models
+models/
+
+# Temporary audio
+*.wav
+*.mp3
+*.tmp
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Logs
+*.log
+
+# Streamlit secrets
+.streamlit/secrets.toml
