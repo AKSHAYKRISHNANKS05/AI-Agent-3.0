@@ -1,6 +1,10 @@
 
 # AI Agent 3.0
 
+## Application Preview
+
+![AI Agent 3.0 Screenshot](screenshot.png)
+
 A locally running AI-powered personal assistant developed using Python, Ollama, Streamlit, Playwright, and Faster Whisper.
 
 The project combines conversational AI, voice commands, browser automation, file management, and persistent memory without requiring paid AI APIs.
