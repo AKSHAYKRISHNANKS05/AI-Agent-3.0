@@ -3,24 +3,21 @@ import re
 from agent_router import select_tool, execute_tool
 from browser_automation import search_web
 
+
 def plan_task(command):
-    """
-    Break a simple combined instruction into smaller tasks.
-    """
+    """Break a simple combined instruction into smaller tasks."""
 
     command = command.strip()
 
     if not command:
         return []
 
-    # Split commands containing 'and then' or 'then'
     parts = re.split(
         r"\s+and\s+then\s+|\s+then\s+",
         command,
         flags=re.IGNORECASE
     )
 
-    # Split simple combined commands using 'and'
     tasks = []
 
     for part in parts:
@@ -36,9 +33,7 @@ def plan_task(command):
 
 
 def browser_search(query):
-    """
-    Search the web using Playwright and return formatted results.
-    """
+    """Search the web using Playwright and return formatted results."""
 
     results = search_web(query)
 
@@ -56,59 +51,82 @@ def browser_search(query):
     return "\n\n".join(output)
 
 
-def run_task(command):
-    """
-    Plan a command and execute its individual tasks.
-    """
+def run_task(command, streamlit_mode=False):
+    """Plan a command and execute its individual tasks."""
 
     tasks = plan_task(command)
 
     if not tasks:
-        return ["Please enter a command."]
+        return {
+            "results": [],
+            "pending_action": None,
+            "remaining_tasks": []
+        }
 
     results = []
 
+    for index, task in enumerate(tasks):
 
-    for task in tasks:
         print(f"\nProcessing: {task}")
 
-        # Recognise explicit browser-search commands
         if task.lower().startswith("browser search "):
             query = task[len("browser search "):].strip()
-
             result = browser_search(query)
 
-            results.append({
-                "task": task,
-                "result": result
-            })
+        else:
+            selected = select_tool(task)
 
-            continue
+            print("Selected tool:", selected["tool"])
 
-        selected = select_tool(task)
+            if streamlit_mode:
+                result = execute_tool(selected, confirmed=False)
+            else:
+                result = execute_tool(selected)
 
-
-        print("Selected tool:", selected["tool"])
-
-        result = execute_tool(selected)
+        if (
+            isinstance(result, dict)
+            and result.get("confirmation_required")
+        ):
+            return {
+                "results": results,
+                "pending_action": result,
+                "remaining_tasks": tasks[index + 1:]
+            }
 
         results.append({
             "task": task,
             "result": result
         })
 
-    return results
+    return {
+        "results": results,
+        "pending_action": None,
+        "remaining_tasks": []
+    }
+
+
+def approve_pending_action(pending_action):
+    """Execute an action after the user approves it."""
+
+    return execute_tool(
+        {
+            "tool": pending_action["tool"],
+            "argument": pending_action["argument"]
+        },
+        confirmed=True
+    )
 
 
 # Run this test only when agent.py is executed directly
 
 if __name__ == "__main__":
+
     command = "Browser search Python tutorials and then tell me the time"
 
-    results = run_task(command)
+    result = run_task(command)
 
     print("\nFinal Results:")
 
-    for item in results:
+    for item in result["results"]:
         print(f"\nTask: {item['task']}")
         print(f"Result:\n{item['result']}")

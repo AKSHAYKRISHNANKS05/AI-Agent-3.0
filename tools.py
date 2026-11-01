@@ -2,19 +2,24 @@
 import webbrowser
 import os
 from datetime import datetime
+from urllib.parse import quote_plus
 
 
-# Tool 1: Get current date
+# Workspace location
+WORKSPACE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "agent_workspace"
+)
+
+
 def get_date():
     return datetime.now().strftime("%A, %d-%m-%Y")
 
 
-# Tool 2: Get current time
 def get_time():
     return datetime.now().strftime("%I:%M:%S %p")
 
 
-# Tool 3: Open a website
 def open_website(url):
     if not url.startswith(("https://", "http://")):
         return "Please provide a valid website URL."
@@ -23,30 +28,20 @@ def open_website(url):
     return f"Requested browser opening for {url}"
 
 
-# Tool 4: Create a folder
 def create_folder(folder_name):
-    base_folder = os.path.join(
-        os.path.dirname(__file__),
-        "agent_workspace"
-    )
+    os.makedirs(WORKSPACE, exist_ok=True)
 
-    os.makedirs(base_folder, exist_ok=True)
-
-    # Allow only a simple folder name inside agent_workspace
-    if not folder_name or folder_name in (".", ".."):
+    if (
+        not folder_name
+        or folder_name in (".", "..")
+        or os.path.basename(folder_name) != folder_name
+    ):
         return "Invalid folder name."
 
-    if os.path.basename(folder_name) != folder_name:
-        return "Please provide a folder name, not a path."
-
-    folder_path = os.path.join(base_folder, folder_name)
-
+    folder_path = os.path.join(WORKSPACE, folder_name)
     os.makedirs(folder_path, exist_ok=True)
 
     return f"Folder '{folder_name}' created successfully."
-
-
-from urllib.parse import quote_plus
 
 
 def google_search(query):
@@ -54,24 +49,17 @@ def google_search(query):
         return "Please provide something to search."
 
     search_url = "https://www.google.com/search?q=" + quote_plus(query)
-
     webbrowser.open(search_url)
 
     return f"Requested Google search for: {query}"
 
 
 def list_folders():
-    base_folder = os.path.join(
-        os.path.dirname(__file__),
-        "agent_workspace"
-    )
-
-    os.makedirs(base_folder, exist_ok=True)
+    os.makedirs(WORKSPACE, exist_ok=True)
 
     folders = [
-        name
-        for name in os.listdir(base_folder)
-        if os.path.isdir(os.path.join(base_folder, name))
+        name for name in os.listdir(WORKSPACE)
+        if os.path.isdir(os.path.join(WORKSPACE, name))
     ]
 
     if not folders:
@@ -83,14 +71,8 @@ def list_folders():
 
 
 def create_file(filename):
-    base_folder = os.path.join(
-        os.path.dirname(__file__),
-        "agent_workspace"
-    )
+    os.makedirs(WORKSPACE, exist_ok=True)
 
-    os.makedirs(base_folder, exist_ok=True)
-
-    # Allow only simple filenames, not paths
     if (
         not filename
         or filename in (".", "..")
@@ -101,11 +83,10 @@ def create_file(filename):
     ):
         return "Invalid filename. Please provide a simple filename."
 
-    file_path = os.path.join(base_folder, filename)
+    file_path = os.path.join(WORKSPACE, filename)
 
-    # Prevent overwriting existing files
     try:
-        with open(file_path, "x", encoding="utf-8") as file:
+        with open(file_path, "x", encoding="utf-8"):
             pass
     except FileExistsError:
         return f"File '{filename}' already exists."
@@ -114,22 +95,17 @@ def create_file(filename):
 
 
 def read_file(filename):
-    base_folder = os.path.join(
-        os.path.dirname(__file__),
-        "agent_workspace"
-    )
-
-    # Prevent accessing files outside the workspace
     if (
         not filename
         or filename in (".", "..")
         or "/" in filename
         or "\\" in filename
         or ":" in filename
+        or os.path.basename(filename) != filename
     ):
         return "Invalid filename."
 
-    file_path = os.path.join(base_folder, filename)
+    file_path = os.path.join(WORKSPACE, filename)
 
     if not os.path.isfile(file_path):
         return f"File '{filename}' does not exist."
@@ -146,12 +122,6 @@ def read_file(filename):
 
 
 def append_file(filename, content):
-    base_folder = os.path.join(
-        os.path.dirname(__file__),
-        "agent_workspace"
-    )
-
-    # Allow only simple filenames
     if (
         not filename
         or filename in (".", "..")
@@ -162,7 +132,7 @@ def append_file(filename, content):
     ):
         return "Invalid filename."
 
-    file_path = os.path.join(base_folder, filename)
+    file_path = os.path.join(WORKSPACE, filename)
 
     if not os.path.isfile(file_path):
         return f"File '{filename}' does not exist."
@@ -187,17 +157,11 @@ def append_file(filename, content):
 
 
 def list_files():
-    base_folder = os.path.join(
-        os.path.dirname(__file__),
-        "agent_workspace"
-    )
-
-    os.makedirs(base_folder, exist_ok=True)
+    os.makedirs(WORKSPACE, exist_ok=True)
 
     files = [
-        name
-        for name in os.listdir(base_folder)
-        if os.path.isfile(os.path.join(base_folder, name))
+        name for name in os.listdir(WORKSPACE)
+        if os.path.isfile(os.path.join(WORKSPACE, name))
     ]
 
     if not files:
@@ -207,3 +171,28 @@ def list_files():
         f"- {name}" for name in sorted(files)
     )
 
+
+def delete_file(filename):
+    filename = filename.strip()
+
+    if (
+        not filename
+        or filename in (".", "..")
+        or "/" in filename
+        or "\\" in filename
+        or ":" in filename
+        or os.path.basename(filename) != filename
+    ):
+        return "Invalid filename. Only files inside agent_workspace can be deleted."
+
+    file_path = os.path.join(WORKSPACE, filename)
+
+    if not os.path.isfile(file_path):
+        return f"File '{filename}' does not exist."
+
+    try:
+        os.remove(file_path)
+        return f"File '{filename}' deleted successfully."
+
+    except OSError as error:
+        return f"Unable to delete file: {error}"
