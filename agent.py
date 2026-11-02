@@ -35,20 +35,28 @@ def plan_task(command):
 def browser_search(query):
     """Search the web using Playwright and return formatted results."""
 
-    results = search_web(query)
+    if not query.strip():
+        return "Please provide something to search for."
 
-    if not results:
-        return "No search results found."
+    try:
+        results = search_web(query)
 
-    output = []
+        if not results:
+            return "No search results found."
 
-    for number, item in enumerate(results, start=1):
-        output.append(
-            f"{number}. {item['title']}\n"
-            f"Link: {item['link']}"
-        )
+        output = []
 
-    return "\n\n".join(output)
+        for number, item in enumerate(results, start=1):
+            output.append(
+                f"{number}. {item.get('title', 'Untitled')}\n"
+                f"Link: {item.get('link', 'No link available')}"
+            )
+
+        return "\n\n".join(output)
+
+    except Exception as error:
+        print(f"Browser search error: {error}")
+        return "Unable to complete the browser search. Please try again."
 
 
 def run_task(command, streamlit_mode=False):
@@ -69,34 +77,48 @@ def run_task(command, streamlit_mode=False):
 
         print(f"\nProcessing: {task}")
 
-        if task.lower().startswith("browser search "):
-            query = task[len("browser search "):].strip()
-            result = browser_search(query)
+        try:
 
-        else:
-            selected = select_tool(task)
+            if task.lower().startswith("browser search "):
+                query = task[len("browser search "):].strip()
+                result = browser_search(query)
 
-            print("Selected tool:", selected["tool"])
-
-            if streamlit_mode:
-                result = execute_tool(selected, confirmed=False)
             else:
-                result = execute_tool(selected)
+                selected = select_tool(task)
 
-        if (
-            isinstance(result, dict)
-            and result.get("confirmation_required")
-        ):
-            return {
-                "results": results,
-                "pending_action": result,
-                "remaining_tasks": tasks[index + 1:]
-            }
+                print("Selected tool:", selected["tool"])
 
-        results.append({
-            "task": task,
-            "result": result
-        })
+                if streamlit_mode:
+                    result = execute_tool(selected, confirmed=False)
+                else:
+                    result = execute_tool(selected)
+
+            if (
+                isinstance(result, dict)
+                and result.get("confirmation_required")
+            ):
+                return {
+                    "results": results,
+                    "pending_action": result,
+                    "remaining_tasks": tasks[index + 1:]
+                }
+
+            results.append({
+                "task": task,
+                "result": result
+            })
+
+        except Exception as error:
+
+            print(f"Task execution error: {error}")
+
+            results.append({
+                "task": task,
+                "result": (
+                    "Unable to complete this task. "
+                    "Please check the request and try again."
+                )
+            })
 
     return {
         "results": results,
@@ -108,13 +130,18 @@ def run_task(command, streamlit_mode=False):
 def approve_pending_action(pending_action):
     """Execute an action after the user approves it."""
 
-    return execute_tool(
-        {
-            "tool": pending_action["tool"],
-            "argument": pending_action["argument"]
-        },
-        confirmed=True
-    )
+    try:
+        return execute_tool(
+            {
+                "tool": pending_action["tool"],
+                "argument": pending_action["argument"]
+            },
+            confirmed=True
+        )
+
+    except Exception as error:
+        print(f"Approved action error: {error}")
+        return "Unable to complete the approved action. Please try again."
 
 
 # Run this test only when agent.py is executed directly

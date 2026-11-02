@@ -196,9 +196,7 @@ if prompt:
                     ).strip()
 
                 if voice_text:
-                    user_message = (
-                        f"{user_message} {voice_text}"
-                    ).strip()
+                    user_message = voice_text.strip()
 
             except Exception as e:
                 st.error(f"Voice recognition error: {e}")
